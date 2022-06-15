@@ -3,8 +3,8 @@ ext {
     BASE = "legu/"
     JAR = rootDir.getPath() + "/legu/ms-shield.jar"
     SIGN_JAR = rootDir.getPath() + "/legu/apksigner.jar"
-    NAME = "AKID4xZu0oLbaJlwqUszpOghRu61f28xVmQp"//腾讯乐固AppId
-    PASSWORD = "A3f16uRhgOoztWsxmKbbLp2xc07wUmnX"//腾讯乐固AppKey
+    NAME = ""//腾讯乐固AppId
+    PASSWORD = ""//腾讯乐固AppKey
     KEY_PATH = "leguGradle.jks" //密钥路径
     KEY_PASSWORD = "111111" //密钥密码
     ALIAS = "autoPack" //密钥别名
