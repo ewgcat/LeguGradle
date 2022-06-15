@@ -7,8 +7,7 @@ findApkFiles buildType: release
 *************** 开始加固 ***************
 reinforce apk:/Users/lishuaihua/Downloads/LeguGradle/app/build/outputs/apk/Xiaomi/release/app-Xiaomi-release.apk
 reinforce apk:Xiaomi
-AKID4xZu0oLbaJlwqUszpOghRu61f28xVmQp
-A3f16uRhgOoztWsxmKbbLp2xc07wUmnX
+
 ---->当前版本: 1.0.3 , 最新版本: 1.0.3
 开始上传apk
 上传成功
