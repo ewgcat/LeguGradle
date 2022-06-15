@@ -1,0 +1,225 @@
+
+ext {
+    BASE = "legu/"
+    JAR = rootDir.getPath() + "/legu/ms-shield.jar"
+    SIGN_JAR = rootDir.getPath() + "/legu/apksigner.jar"
+    NAME = "AKID4xZu0oLbaJlwqUszpOghRu61f28xVmQp"//腾讯乐固AppId
+    PASSWORD = "A3f16uRhgOoztWsxmKbbLp2xc07wUmnX"//腾讯乐固AppKey
+    KEY_PATH = "leguGradle.jks" //密钥路径
+    KEY_PASSWORD = "111111" //密钥密码
+    ALIAS = "autoPack" //密钥别名
+    ALIAS_PASSWORD = "111111" //别名密码
+    OUTPUT_PATH = buildDir.getPath() + "/outputs/release/" //加固后所有apk的保存路径
+    CHANNEL_CONFIG = BASE + "channel/"//保存渠道配置
+}
+
+class ApkFile {
+    String channel
+    File file
+}
+
+/**
+ * 查找所有apk
+ * @param buildType release 或者 debug
+ * @return ArrayList <ApkFile>
+ */
+def findApkFiles(String buildType) {
+    println "findApkFiles buildType: " + buildType
+
+    File apkDir = new File(buildDir.getPath() + "/outputs/apk")
+    File[] channelDirs = apkDir.listFiles()
+    println apkDir.getAbsolutePath()
+    List<ApkFile> apkFiles = new ArrayList<>()
+    for (int i = 0; i < channelDirs.length; i++) {
+        File channelDir = channelDirs[i]
+        ApkFile apkFile = new ApkFile()
+        apkFile.channel = channelDir.name
+
+        File[] files = new File(channelDir, "/" + buildType).listFiles()
+
+        if (files == null || files.length == 0) {
+            continue
+        }
+        for (int j = 0; j < files.length; j++) {
+            File lastFile = files[j]
+            if (!lastFile.name.endsWith(".apk")) {
+                continue
+            }
+
+            apkFile.file = lastFile
+            apkFiles.add(apkFile)
+        }
+
+    }
+
+    return apkFiles
+}
+
+
+def zipalignApk(File output) {
+    println "*************** zipalign优化开始 ***************"
+    File[] files = output.listFiles()
+    if (files == null || files.length == 0) {
+        return
+    }
+    File zipalign = new File(output.getParent() + "/zipalign")
+    if (zipalign.exists()) {
+        if (!zipalign.delete()) {
+            throw new RuntimeException("delete zipalignOutputDir failure!")
+        }
+    }
+
+    if (!zipalign.mkdirs()) {
+        throw new RuntimeException("make zipalignOutputDir failure!")
+    }
+
+    for (int i = 0; i < files.length; i++) {
+        File leguApk = files[i]
+
+        if (!leguApk.name.endsWith(".apk")) {
+            continue
+        }
+        println leguApk.getAbsolutePath()
+        exec {
+//            java -jar apksigner.jar sign  --ks key.jks  --ks-key-alias releasekey  --ks-pass pass:pp123456  --key-pass pass:pp123456  --out output.apk  input.apk
+            if (isWindows()) {
+                commandLine "powershell", rootDir.getPath() + "/legu/zipalign", "-v", "-p", "4", leguApk.getPath(), zipalign.getPath() + "/" + leguApk.getName()
+            } else {
+                commandLine rootDir.getPath() + "/legu/zipalign", "-v", "-p", "4", leguApk.getPath(), zipalign.getPath() + "/" + leguApk.getName()
+            }
+
+        }
+        println "*************** zipalign优化结束 ***************"
+
+    }
+}
+/**
+ * 查找所有apk
+ * @param output
+ */
+def signApk(File output) {
+    println "*************** 开始签名 ***************"
+    File[] files = output.listFiles()
+    if (files == null || files.length == 0) {
+        return
+    }
+    File signer = new File(output.getParent() + "/sign")
+
+    if (signer.exists()) {
+        if (!signer.delete()) {
+            throw new RuntimeException("delete signerOutputDir failure!")
+        }
+    }
+
+    if (!signer.mkdirs()) {
+        throw new RuntimeException("make signerOutputDir failure!")
+    }
+    for (int i = 0; i < files.length; i++) {
+        File zApk = files[i]
+
+        if (!zApk.name.endsWith(".apk")) {
+            continue
+        }
+        println zApk.getAbsolutePath()
+       String signApkName= zApk.getName().replace(".apk","_sign.apk")
+        exec {
+//            java -jar apksigner.jar sign  --ks key.jks  --ks-key-alias releasekey  --ks-pass pass:pp123456  --key-pass pass:pp123456  --out output.apk  input.apk
+            if (isWindows()) {
+                commandLine "powershell", "java", "-jar", SIGN_JAR, "sign", "--ks", KEY_PATH, "--ks-key-alias", ALIAS, "--ks-pass", "pass:" + KEY_PASSWORD, "--key-pass", "pass:" + KEY_PASSWORD, "--out", signer.getPath() + "/" + signApkName, zApk.getPath()
+
+            } else {
+                commandLine "java", "-jar", SIGN_JAR, "sign", "--ks", KEY_PATH, "--ks-key-alias", ALIAS, "--ks-pass", "pass:" + KEY_PASSWORD, "--key-pass", "pass:" + KEY_PASSWORD, "--out", signer.getPath() + "/" + signApkName, zApk.getPath()
+            }
+        }
+
+        println "***************签名结束:"+signApkName
+    }
+
+}
+
+
+def isWindows() {
+    return org.gradle.internal.os.OperatingSystem.current().isWindows()
+}
+/**
+ * 乐固加固
+ * @param apk 加固的原始apk File
+ * @param outputPath 输出目录
+ * @param channel 原始渠道(baidu,yyb,...)
+ */
+def reinforce(apk, outputPath, channel) {
+
+    println "reinforce apk:" + apk
+    println "reinforce apk:" + channel
+
+    //jiagu.db中缓存了多渠道信息，如果不删除会合并到当前多渠道配置
+    def shield = new File(JAR)
+    if (!shield.exists()) {
+        throw new RuntimeException("jar not exists!")
+    }
+    println NAME
+    println PASSWORD
+    exec {
+        if (isWindows()) {
+            commandLine "powershell", "java -jar", JAR, "-sid", NAME, "-skey", PASSWORD, "-uploadPath", apk, "-downloadPath", outputPath
+        } else {
+            commandLine "java", "-Dfile.encoding=utf-8", "-jar", shield.getAbsolutePath(), "-sid", NAME, "-skey", PASSWORD, "-uploadPath", apk, "-downloadPath", outputPath
+        }
+
+    }
+}
+
+/**
+ * 删除一些临时文件
+ * @param outputDir apk保存目录
+ */
+def filterApk(File outputDir) {
+
+    File[] files = outputDir.listFiles()
+    for (int i = 0; i < files.length; i++) {
+        File file = files[i]
+        String fileName = file.getName()
+
+        if (fileName.endsWith("legu.apk") || fileName.endsWith("temp.apk")
+                || !fileName.endsWith("_sign.apk")) {
+            println "*************** delete "+file.getAbsolutePath()
+            file.delete()
+        }
+    }
+}
+
+
+//构建发布到生产环境的所有渠道apk,生成压缩文件 pccb-x.x.x.zip
+task packageRelease {
+    dependsOn("assembleRelease")
+    doLast {
+        List<ApkFile> apkFiles = findApkFiles("release")
+        if (apkFiles.size() == 0) {
+            throw new RuntimeException("no apk files has found!")
+        }
+        String[] nameSlice = apkFiles.get(0).file.name.split("-")
+        File outputDir = new File(OUTPUT_PATH + nameSlice[0] + "/legu")
+
+        println outputDir.getPath()
+        if (outputDir.exists()) {
+            if (!outputDir.delete()) {
+                throw new RuntimeException("delete outputDir failure!")
+            }
+        }
+
+        if (!outputDir.mkdirs()) {
+            throw new RuntimeException("make outputDir failure!")
+        }
+        println "*************** 开始加固 ***************"
+        for (int i = 0; i < apkFiles.size(); i++) {
+            ApkFile apkFile = apkFiles.get(i)
+            reinforce(apkFile.file.getAbsolutePath(), outputDir.getAbsolutePath(), apkFile.channel)
+        }
+        println "*************** 加固结束 ***************"
+        zipalignApk(new File(outputDir.getParentFile().getAbsolutePath() + "/legu"))
+        signApk(new File(outputDir.getParentFile().getAbsolutePath() + "/zipalign"))
+        filterApk(new File(outputDir.getParentFile().getAbsolutePath() + "/legu"))
+        filterApk(new File(outputDir.getParentFile().getAbsolutePath() + "/zipalign"))
+
+    }
+}
