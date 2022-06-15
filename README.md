@@ -1,5 +1,5 @@
 # LeguGradle
-腾迅乐固gradle 配置加固
+腾迅乐固gradle 加固签名运行日志
 > Task :app:packageRelease
 findApkFiles buildType: release
 /Users/lishuaihua/Downloads/LeguGradle/app/build/outputs/apk
