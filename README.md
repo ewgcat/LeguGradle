@@ -1,5 +1,7 @@
 # LeguGradle
-腾迅乐固gradle 加固签名运行日志
+## 腾迅乐固gradle 加固签名运行日志
+
+```
 > Task :app:packageRelease
 findApkFiles buildType: release
 /Users/lishuaihua/Downloads/LeguGradle/app/build/outputs/apk
@@ -500,3 +502,4 @@ Verification succesful
 ***************签名结束:app-Xiaomi-release_legu_sign.apk
 *************** delete /Users/lishuaihua/Downloads/LeguGradle/app/build/outputs/release/app/legu/app-Xiaomi-release_legu.apk
 *************** delete /Users/lishuaihua/Downloads/LeguGradle/app/build/outputs/release/app/zipalign/app-Xiaomi-release_legu.apk
+```
